@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Bit akışının uzunluğunu (51200 bit) parametre olarak belirtiyoruz.
+STREAM_LENGTH=51200
+
+# Giriş dosyamızın yolunu belirtiyoruz.
+INPUT_FILE="../../../../results/nist_test_data.txt"
+
+# Testi çalıştır
+(
+echo "0"
+echo "${INPUT_FILE}"
+echo "1"
+echo "0"
+echo "1"
+echo "0"
+) | ./assess "${STREAM_LENGTH}"
+
+# Test tamamlandıktan sonra raporu kopyala
+REPORT_DIR="./experiments/AlgorithmTesting"
+if [ -f "${REPORT_DIR}/finalAnalysisReport.txt" ]; then
+    cp "${REPORT_DIR}/finalAnalysisReport.txt" \
+       "${REPORT_DIR}/finalAnalysisReport_ascii.txt"
+    echo "ASCII test raporu kaydedildi: finalAnalysisReport_ascii.txt"
+else
+    echo "Rapor dosyası bulunamadı: finalAnalysisReport.txt"
+fi

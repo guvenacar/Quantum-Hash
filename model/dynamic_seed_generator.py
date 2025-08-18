@@ -12,8 +12,8 @@ def polynomial_calculate(bit_string: str, bit_length: int = 512) -> int:
         bit_string = bit_string[:bit_length]
 
     # Determine two base values for polynomial calculation
-    base1 = ((2 * bit_string.count('1') + 3) % 511) | 3
-    base0 = ((2 * (bit_length - bit_string.count('1')) + 3) % 511) | 3
+    base1 = ((2 * bit_string.count('1') + 3) % 512) | 3
+    base0 = ((2 * (bit_length - bit_string.count('1')) + 3) % 512) | 3
 
     def calculate(bits: str, base: int) -> int:
         """
@@ -42,30 +42,29 @@ def bits_right_pad(bit_string: str, total_bits: int = 512) -> str:
         raise ValueError("Invalid bit string – only '0' and '1' are allowed")
     return bit_string.ljust(total_bits, '0')[:total_bits]
 
-
 if __name__ == "__main__":
     output_dir = "results"
-    output_file = os.path.join(output_dir, "nist_test_data.bin")
     os.makedirs(output_dir, exist_ok=True)
+    bin_file = os.path.join(output_dir, "nist_test_data.bin")
+    txt_file = os.path.join(output_dir, "nist_test_data.txt")
 
-    print("Creating binary file, please wait...")
-    with open(output_file, "wb") as f:
+    print("Creating binary and ASCII files, please wait...")
+
+    with open(bin_file, "wb") as bf, open(txt_file, "w") as tf:
         for i in range(1_000):
             try:
-                # Convert integer to 512-bit binary string
                 bit_str = bin(i)[2:].zfill(512)
                 int_value = polynomial_calculate(bit_str)
 
-                print("Input: ", i)
-                print("Bit value: ", bin(int_value)[2:])
-                print("Integer value: ", int_value)
+                # Binary output
+                bf.write(int_value.to_bytes(64, byteorder='big'))
 
-                # Convert integer to bytes (64 bytes = 512 bits)
-                binary_data = int_value.to_bytes(64, byteorder='big')
-                f.write(binary_data)
+                # ASCII output
+                tf.write(bin(int_value)[2:].zfill(512) + "\n")
 
             except Exception as e:
                 print(f"Error processing input {i}: {e}")
                 break
 
-    print(f"Process complete. Total file size: {os.path.getsize(output_file)} bytes")
+    print(f"Process complete. Binary size: {os.path.getsize(bin_file)} bytes")
+    print(f"ASCII size: {os.path.getsize(txt_file)} bytes")
