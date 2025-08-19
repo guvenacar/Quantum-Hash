@@ -51,7 +51,7 @@ if __name__ == "__main__":
     print("Creating binary and ASCII files, please wait...")
 
     with open(bin_file, "wb") as bf, open(txt_file, "w") as tf:
-        for i in range(1_000):
+        for i in range(1000):
             try:
                 bit_str = bin(i)[2:].zfill(512)
                 int_value = polynomial_calculate(bit_str)

@@ -1,10 +1,11 @@
+#test/NIST/sts-2.1.2/sts-2.1.2/run_nist_tests_binary.sh
 #!/bin/bash
 
 # Her bir bit akışının uzunluğu (Python kodundaki 32 bayt = 256 bit)
 L=256
 
 # Toplam bit akışı sayısı (Python kodundaki gibi 10.000)
-N=10000
+N=1000
 
 # Giriş dosyamızın yolu
 INPUT_FILE="../../../../results/nist_test_data.bin"

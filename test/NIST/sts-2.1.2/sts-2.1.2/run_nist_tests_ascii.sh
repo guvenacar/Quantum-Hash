@@ -1,3 +1,4 @@
+#test/NIST/sts-2.1.2/sts-2.1.2/run_nist_tests_ascii.sh
 #!/bin/bash
 
 # Bit akışının uzunluğunu (51200 bit) parametre olarak belirtiyoruz.
