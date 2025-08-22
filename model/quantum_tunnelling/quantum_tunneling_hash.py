@@ -4,42 +4,42 @@ import numpy as np
 import matplotlib.pyplot as plt
 from model.dynamic_seed_generator import polynomial_calculate, bits_right_pad
 
-# Taşma uyarılarını sessize al (biz mod 2^64 wrap-around istiyoruz)
+# Suppress overflow warnings (we want mod 2^64 wrap-around)
 np.seterr(over='ignore')
 
 UINT64_MAX = 2**64 - 1
 
 def _u64s_from_bytes(b: bytes):
-    """64 baytı 8'lik parçalara bölüp uint64 listesine çevir."""
+    """Split 64 bytes into 8 chunks and convert to a list of uint64."""
     if len(b) != 64:
-        raise ValueError("seed_bytes tam olarak 64 bayt olmalı")
+        raise ValueError("seed_bytes must be exactly 64 bytes")
     return [int.from_bytes(b[i:i+8], "big") for i in range(0, 64, 8)]
 
 def _map_u64(u, lo, hi):
-    """uint64 -> [lo, hi] aralığına düzgün ölçekleme"""
+    """Uniformly scale a uint64 to a value in the range [lo, hi]"""
     return lo + (u / UINT64_MAX) * (hi - lo)
 
 
 class TunnelingHash:
     """
-    - Bariyer: merkez + genişlik ile tanımlanır.
-    - 64 baytlık seed'den (veya int'ten) dalga paketi & bariyer parametreleri türetilir.
-    - Zaman evrimi: split-operator (FFT) + absorbing boundary.
-    - get_hash: simülasyon sonundan deterministik, SHA-olmayan karıştırma ile byte dizisi üretir.
+    - Barrier is defined by center + width.
+    - Wave packet & barrier parameters are derived from a 64-byte seed (or int).
+    - Time evolution: split-operator (FFT) + absorbing boundary.
+    - get_hash: produces a deterministic, non-SHA mixed byte sequence from the simulation end.
     """
     def __init__(self, seed_bytes: bytes | None = None, seed_int: int | None = None,
                  N: int = 2048, L: float = 20.0):
         if seed_bytes is None and seed_int is None:
-            raise ValueError("seed_bytes veya seed_int vermelisiniz")
+            raise ValueError("You must provide either seed_bytes or seed_int")
 
         if seed_bytes is None:
-            # tamsayıyı 64 bayta genişlet
+            # expand integer to 64 bytes
             seed_bytes = seed_int.to_bytes(64, "big", signed=False)
         elif len(seed_bytes) != 64:
-            raise ValueError("seed_bytes tam 64 bayt olmalı")
+            raise ValueError("seed_bytes must be exactly 64 bytes")
 
         self.seed_bytes = seed_bytes
-        self.u = _u64s_from_bytes(seed_bytes)  # 8 adet uint64
+        self.u = _u64s_from_bytes(seed_bytes)  # 8 uint64 values
 
         self.N = N
         self.L = L
@@ -51,16 +51,16 @@ class TunnelingHash:
         self.psi = None
         self.V = None
 
-    # --------- Parametreleri seed'den üretme ---------
+    # --------- Generate parameters from seed ---------
     def params_from_seed(self):
         u = self.u
-        x0   = _map_u64(u[0], -7.5, -2.5)    # başlangıç merkezi
+        x0   = _map_u64(u[0], -7.5, -2.5)    # initial center
         k0   = _map_u64(u[1],  2.0,  8.0)    # momentum
-        sigma = _map_u64(u[2], 0.4,  1.2)    # genişlik
+        sigma = _map_u64(u[2], 0.4,  1.2)    # width
 
-        center = _map_u64(u[3], -0.5, 0.5)   # bariyer merkezi
-        width  = _map_u64(u[4],  0.5,  2.5)  # bariyer genişliği
-        V0     = _map_u64(u[5],  2.0, 15.0)  # bariyer yüksekliği
+        center = _map_u64(u[3], -0.5, 0.5)   # barrier center
+        width  = _map_u64(u[4],  0.5,  2.5)  # barrier width
+        V0     = _map_u64(u[5],  2.0, 15.0)  # barrier height
 
         absorb_strength = _map_u64(u[6], 0.15, 0.35)
         dt = _map_u64(u[7], 0.004, 0.012)
@@ -71,7 +71,7 @@ class TunnelingHash:
             "absorb_strength": absorb_strength, "dt": dt
         }
 
-    # --------- Dalga paketi ve potansiyel ---------
+    # --------- Wave packet and potential ---------
     def create_wave_packet(self, x0: float, k0: float, sigma: float):
         psi0 = np.exp(- (self.x - x0)**2 / (2 * sigma**2)) * np.exp(1j * k0 * self.x)
         psi0 /= np.sqrt(np.sum(np.abs(psi0)**2) * self.dx)  # normalize
@@ -86,10 +86,10 @@ class TunnelingHash:
         self.V = V
         return V, (a, b)
 
-    # --------- Absorbing boundary (kenar sönümleme) ---------
+    # --------- Absorbing boundary ---------
     def absorbing_boundary(self, strength: float = 0.25):
         mask = np.ones_like(self.x)
-        edge = int(0.1 * self.N)  # %10'luk kenar
+        edge = int(0.1 * self.N)  # 10% edge
         ramp = np.linspace(0, 1, edge)
         mask[:edge] *= np.exp(-strength * ramp**2)
         mask[-edge:] *= np.exp(-strength * ramp[::-1]**2)
@@ -97,11 +97,11 @@ class TunnelingHash:
 
     def evolve_tdse(self, psi, V, dt: float, Nt: int = 800, 
                     absorb_strength: float = 0.25, 
-                    title="Tünelleme Simülasyonu", 
+                    title="Tunneling Simulation", 
                     do_plot: bool = False):
         """
-        Zaman evrimi (split-operator + absorbing boundary)
-        do_plot=True verilirse grafik çizilir, False ise çizilmez
+        Time evolution (split-operator + absorbing boundary)
+        If do_plot=True, plots a graph; otherwise, does not.
         """
         k = 2 * np.pi * np.fft.fftfreq(self.N, d=self.dx)
         T = np.exp(-1j * (self.hbar * k**2) / (2 * self.m) * dt / 2)
@@ -134,35 +134,35 @@ class TunnelingHash:
         self.psi = psi
         return psi
 
-    # --------- Hash üretme (sınıf metodu) ---------
+    # --------- Hash generation (class method) ---------
     def get_hash(self, output_bits: int = 256) -> bytes:
         """
-        Yeni get_hash:
-        - psi'den prob. yoğunluğu alır, kesinlikle normalize eder.
-        - prob_density float64 bit-pattern'lerini uint64 olarak yorumlar.
-        - Bu uint64 kelimeleri seed'den üretilmiş 8 uint64 ile etkileştirip
-          SplitMix-esque bir karıştırıcı ile karıştırır.
-        - Çıktıyı istenen bit sayısına kısaltır (deterministik, non-cryptographic mixing).
-        Not: SHA veya dış kütüphane kullanılmaz.
+        New get_hash:
+        - Gets prob. density from psi, ensures it's normalized.
+        - Interprets prob_density float64 bit-patterns as uint64.
+        - Mixes these uint64 words with 8 seed-derived uint64s using a
+          SplitMix-esque mixer.
+        - Truncates the output to the desired number of bits (deterministic, non-cryptographic mixing).
+        Note: No SHA or external libraries are used for hashing.
         """
         if self.psi is None:
-            raise ValueError("Önce simülasyonu çalıştırmalısınız (evolve_tdse).")
+            raise ValueError("You must run the simulation first (evolve_tdse).")
 
-        # 1) Olasılık yoğunluğu ve kesin normalize
+        # 1) Probability density and absolute normalization
         prob_density = np.abs(self.psi)**2
         total_prob = np.sum(prob_density) * self.dx
         if total_prob == 0:
-            raise ValueError("Toplam olasılık sıfır; simülasyonu kontrol et.")
-        prob_density = prob_density / total_prob  # kesin normalize
+            raise ValueError("Total probability is zero; check the simulation.")
+        prob_density = prob_density / total_prob  # absolute normalization
 
-        # 2) Float64 bit-pattern'lerini uint64 olarak al
+        # 2) Get float64 bit-patterns as uint64
         float_bytes = prob_density.astype(np.float64).tobytes()
         u64_from_prob = np.frombuffer(float_bytes, dtype=np.uint64).astype(np.uint64)
 
-        # 3) Seed'e dayalı başlangıç durumu (self.u zaten 8 adet uint64)
-        seed_u64 = np.array(self.u, dtype=np.uint64)  # 8 elemanlı
+        # 3) Seed-based initial state (self.u is already 8 uint64s)
+        seed_u64 = np.array(self.u, dtype=np.uint64)  # 8-element array
 
-        # 4) SplitMix64 tarzı karıştırıcı (işlem uint64 sınırında)
+        # 4) SplitMix64-style mixer (operation is within uint64 boundaries)
         def splitmix64(x: np.uint64) -> np.uint64:
             mask64 = np.uint64(0xFFFFFFFFFFFFFFFF)
             x = (x + np.uint64(0x9E3779B97F4A7C15)) & mask64
@@ -173,12 +173,12 @@ class TunnelingHash:
             x = x ^ (x >> np.uint64(31))
             return x & mask64
 
-        # 5) Karıştırma döngüsü: prob kelimelerini bloklar halinde indirger ve karıştırır
+        # 5) Mixing loop: reduce and mix prob words in chunks
         out_bits = int(output_bits)
         if out_bits % 8 != 0:
-            raise ValueError("output_bits 8'in katı olmalı.")
+            raise ValueError("output_bits must be a multiple of 8.")
         out_bytes_len = out_bits // 8
-        out_words_needed = (out_bytes_len + 7) // 8  # kaç 64-bit kelime gerekli
+        out_words_needed = (out_bytes_len + 7) // 8  # how many 64-bit words are needed
 
         words = []
         n = len(u64_from_prob)
@@ -186,19 +186,19 @@ class TunnelingHash:
         mask64 = np.uint64(0xFFFFFFFFFFFFFFFF)
 
         if n == 0:
-            # nadir ama garanti için: fallback seed türevi
+            # rare but for guarantee: fallback seed derivative
             state = seed_u64.copy()
             for i in range(out_words_needed):
                 v = splitmix64(np.uint64(state[i % 8] + np.uint64(i)))
                 words.append(v)
         else:
-            # chunk_size: prob kelimelerini kelime bazında böl
+            # chunk_size: divide prob words into word-based chunks
             chunk_size = max(1, n // out_words_needed)
             for wi in range(out_words_needed):
                 start = wi * chunk_size
                 end = min(start + chunk_size, n)
                 block = u64_from_prob[start:end]
-                # xor-reduce (çok hızlı) -> preserve entropy from all words in block
+                # xor-reduce (very fast) -> preserve entropy from all words in block
                 xor_reduce = np.uint64(0)
                 if block.size > 0:
                     xor_reduce = np.bitwise_xor.reduce(block)
@@ -206,21 +206,21 @@ class TunnelingHash:
                 mixed = xor_reduce ^ seed_u64[wi % seed_u64.size] ^ ((np.uint64(wi) * const) & mask64)
                 # pass through splitmix for diffusion
                 v = splitmix64(mixed)
-                # ekstra nonlineer adım: rotate-left by lower 6 bits of v (basit)
+                # extra nonlinear step: rotate-left by lower 6 bits of v (simple)
                 rot = int(v & np.uint64(0x3F))
                 v = ((v << rot) | (v >> (64 - rot))) & mask64
-                # son bir splitmix
+                # final splitmix
                 v = splitmix64(v)
                 words.append(v)
 
-        # 6) words -> byte dizisi ve uzunluğu istenene kısalt
+        # 6) words -> byte array and truncate to the desired length
         out_arr = np.array(words, dtype=np.uint64)
         out_bytes = out_arr.tobytes()[:out_bytes_len]
 
         return out_bytes
 
 
-# --------- Yardımcılar: metinden seed ---------
+# --------- Helpers: seed from text ---------
 def text_to_bits(text: str, encoding="utf-8") -> str:
     return ''.join(f"{byte:08b}" for byte in text.encode(encoding))
 
@@ -230,25 +230,25 @@ def seed_from_text(message: str) -> int:
     return polynomial_calculate(bit_str)
 
 
-# --------- Örnek kullanım / CLI ---------
+# --------- Example usage / CLI ---------
 if __name__ == "__main__":
     print("Creating seed and hash files (ASCII bitstreams)...")
 
-    # Sonuçlar klasörünü oluştur
+    # Create the results directory
     os.makedirs("results", exist_ok=True)
     
-    # 1000 adet seed üretmek için döngü
+    # Loop to generate 1000 seeds
     num_seeds = 1000
     seeds_data = []
-    #base_message = "Merhaba Quantum Hesh!"
+    #base_message = "Hello Quantum Hash!"
     #base_seed_int = seed_from_text(base_message)
     
     for i in range(num_seeds):
-        # Her döngüde farklı bir seed üretmek için base seed'e i değerini ekle
+        # Add 'i' to the base seed to create a different seed for each loop
         seed_int =seed_from_text(str(i))
         seeds_data.append(seed_int)
 
-    # --- 0–999 döngüsü ---
+    # --- 0–999 loop ---
     with open("results/nist_seed_data.txt", "w") as sf, \
          open("results/nist_hash_data.txt", "w") as hf:
         
@@ -260,7 +260,7 @@ if __name__ == "__main__":
             psi0 = th.create_wave_packet(P["x0"], P["k0"], P["sigma"])
             V, _ = th.define_barrier_center_width(P["barrier_center"], P["barrier_width"], P["V0"])
 
-            # Simülasyonu çalıştır (grafik yok)
+            # Run the simulation (no graph)
             final_psi = th.evolve_tdse(
                 psi0, V,
                 dt=P["dt"], Nt=900,
@@ -268,14 +268,14 @@ if __name__ == "__main__":
                 do_plot=False
             )
 
-            # Hash üret (512 bit)
+            # Generate hash (512 bits)
             quantum_bytes = th.get_hash(output_bits=512)
 
-            # seed ve hash'i 512-bit ikili string olarak kaydet
+            # Save seed and hash as 512-bit binary strings
             seed_binary_string = format(seed_int, '0512b')
             quantum_binary_string = ''.join(format(byte, '08b') for byte in quantum_bytes)
 
             sf.write(seed_binary_string + "\n")
             hf.write(quantum_binary_string + "\n")
 
-    print(f"Done. {num_seeds} adet farklı seed/hash ikilisi results/ klasörüne yazıldı.")
+    print(f"Done. {num_seeds} different seed/hash pairs written to the results/ folder.")

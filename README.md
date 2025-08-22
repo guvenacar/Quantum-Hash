@@ -1,11 +1,27 @@
 # Quantum-Hash
+**Quantum-Resistant Hash Project**
 
-**Quantum Resistance Hash Project**
+This project was initiated with the aim of developing new hash algorithms resistant to quantum computing by modeling phenomena from the atomic world of physics. The ultimate goal is to design secure cryptographic structures resistant to both classical and post-quantum computational attacks.
 
-This project has been initiated with the aim of modeling the subatomic world of physics to develop new hash algorithms that demonstrate quantum resistance. The ultimate goal is to design secure cryptographic primitives capable of withstanding both classical and post-quantum computational attacks.
+## Current Status
+The project is currently in its initial phase, focusing on the generation of seed values. Unlike traditional hash algorithms that use fixed initial values, this project employs the concept of dynamic seed values.
 
-At the current stage, the project is in its initial phase, focusing on the generation of the main seed values. Unlike traditional hash algorithms, which rely on fixed initial values, this project introduces the concept of dynamic initial seeds.
+## Features
+- High entropy and unpredictability with dynamic initial values  
+- Increased resistance against analytical attacks  
+- Potential adaptability with quantum-inspired models  
 
-By employing dynamic starting values, the design seeks to achieve a higher degree of unpredictability and entropy, making the resulting hashes more resistant to analytical attacks and increasing overall cryptographic strength.
+## Future Plans
+- Investigation of the evolution and adaptation processes of dynamic seeds  
+- Interaction with quantum-inspired randomness models  
+- Development of new approaches for post-quantum cryptography  
 
-Future iterations of this project will explore how these dynamically generated seeds can evolve, adapt, and interact with quantum-inspired models of randomness, potentially leading to novel approaches in post-quantum cryptography.
+## Example Studies
+- **Quantum Tunneling Hash**  
+  - [Code (quantum_tunneling_hash.py)](model/quantum_tunnelling/quantum_tunneling_hash.py)  
+  - [Explanation (explanation.md)](model/quantum_tunnelling/explanation.md)  
+  - (Achieved **97% success** in NIST tests)
+
+- **Maze Hash** *(In Progress)*  
+
+- **Quaternion Tensor Hash** *(In Progress)*  
