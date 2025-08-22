@@ -1,3 +1,5 @@
+# model/dynamic_seed_generator.py
+
 import os
 
 def polynomial_calculate(bit_string: str, bit_length: int = 512) -> int:
