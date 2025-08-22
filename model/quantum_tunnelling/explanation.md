@@ -82,4 +82,4 @@ In short, the process is:
 
 **Seed → Physical Initial Conditions → Quantum Particle (Wave Packet) → Evolution via Schrödinger Equation → Tunneling Event → Final Probability Distribution → Numerical Fingerprint (Hash)**.
 
-This method utilizes the complexity and unpredictability (akin to deterministic chaos) of a fundamental law of nature to generate a hash, instead of using standard algorithms like SHA-256.
+In this case, quantum tunneling was applied only once throughout the entire algorithm, and approximately 97% success was achieved in the NIST tests. With the repeated application of the tunneling model multiple times in succession, an increase in success is inevitable.
