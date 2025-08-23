@@ -17,7 +17,7 @@ The project is currently in its initial phase, focusing on the generation of see
 - Development of new approaches for post-quantum cryptography  
 
 ## Example Studies
-- **Quantum Tunneling Hash**  
+- **Quantum Tunneling Hash (QTHash)**  
   - [Code (quantum_tunneling_hash.py)](model/quantum_tunnelling/quantum_tunneling_hash.py)  
   - [Explanation (explanation.md)](model/quantum_tunnelling/explanation.md)  
   - (Achieved **97% success** in NIST tests)
