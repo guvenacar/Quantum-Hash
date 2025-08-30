@@ -17,11 +17,10 @@ The project is currently in its initial phase, focusing on the generation of see
 - Development of new approaches for post-quantum cryptography  
 
 ## Example Studies
-- **Quantum Tunneling Hash (QTHash)**  
-  - [Code (quantum_tunneling_hash.py)](model/quantum_tunnelling/quantum_tunneling_hash.py)  
+- **Quantum Tunneling Hash (QTHash)** - [Code (quantum_tunneling_hash.py)](model/quantum_tunnelling/quantum_tunneling_hash.py)  
   - [Explanation (explanation.md)](model/quantum_tunnelling/explanation.md)  
   - (Achieved **97% success** in NIST tests)
 
-- **Maze Hash** *(In Progress)*  
+- [**Spin-Quantum-Hash**](https://github.com/guvenacar/Spin-Quantum-Hash) 
 
-- **Quaternion Tensor Hash** *(In Progress)*  
+- **Quaternion Tensor Hash** *(In Progress)* ```
